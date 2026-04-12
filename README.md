@@ -20,8 +20,8 @@ Application de gestion de projet pour développeur solo. Découpage fonctionnel,
 
 ```bash
 git clone https://github.com/kevstfnl/Gantty && cd Gantty
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 # → http://localhost:3000
 ```
 
@@ -51,7 +51,7 @@ docker cp gantty:/app/data/gantty.db ./backup-$(date +%Y%m%d).db
 ### Sans Docker (systemd)
 
 ```bash
-npm run build && npm start
+pnpm run build && npm start
 ```
 
 Service systemd `/etc/systemd/system/gantty.service` :
@@ -90,9 +90,9 @@ sudo systemctl enable gantty && sudo systemctl start gantty
 ## Tests
 
 ```bash
-npm test              # Tous les tests
-npm run test:watch    # Mode watch
-npm run test:coverage # Avec couverture
+pnpm test              # Tous les tests
+pnpm run test:watch    # Mode watch
+pnpm run test:coverage # Avec couverture
 ```
 
 49 tests couvrant : calcul Gantt (jours travaillés, géométrie des barres), logique du store (CRUD, dépendances, bornes projet), validation des IDs d'API.

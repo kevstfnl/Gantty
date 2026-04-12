@@ -1,10 +1,11 @@
 # ── Stage 1: Dependencies ─────────────────────────────────────────────────
-FROM node:22-alpine AS deps
+FROM node:42-alpine AS deps
+RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
 # Install dependencies only (cached layer)
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm ci --omit=dev
 
 # ── Stage 2: Builder ──────────────────────────────────────────────────────
 FROM node:22-alpine AS builder
