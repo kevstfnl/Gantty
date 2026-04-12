@@ -9,7 +9,7 @@ services:
       - "3000:3000"
     volumes:
       # SQLite database persists between container restarts
-      - gantty:/app/data
+      - gantty-data:/app/data
     environment:
       - NODE_ENV=production
       - PORT=3000
