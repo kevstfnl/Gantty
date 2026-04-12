@@ -1,0 +1,35 @@
+services:
+  gantty:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gantty
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # SQLite database persists between container restarts
+      - gantty:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_PATH=/app/data/gantty.db
+    # Raspberry Pi memory limit (adjust to your model)
+    mem_limit: 512m
+    mem_reservation: 256m
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/projects"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  gantty-data:
+    driver: local
