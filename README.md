@@ -19,7 +19,7 @@ Application de gestion de projet pour développeur solo. Découpage fonctionnel,
 ## Démarrage rapide
 
 ```bash
-git clone https://github.com/kevstfnl/Gantty && cd gantty
+git clone https://github.com/kevstfnl/Gantty && cd Gantty
 npm install
 npm run dev
 # → http://localhost:3000
