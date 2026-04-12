@@ -1,22 +1,21 @@
 # ── Stage 1: Dependencies ─────────────────────────────────────────────────
 FROM node:24-alpine AS deps
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
-
-# Install dependencies only (cached layer)
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # ── Stage 2: Builder ──────────────────────────────────────────────────────
 FROM node:24-alpine AS builder
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable && corepack prepare pnpm@latest --activate  # ← ajout
 WORKDIR /app
-
-# Copy deps from previous stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Build Next.js (outputs to .next/standalone)
-RUN pnpm build
+RUN pnpm run build
 
 # ── Stage 3: Runner (minimal image, sources excluded) ─────────────────────
 FROM node:24-alpine AS runner
