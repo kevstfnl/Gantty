@@ -1,5 +1,16 @@
 import { type Project } from "@/lib/store";
 import { formatters, sanitizeFilename, downloadMarkdown } from "./common";
+import {
+	addPdfFooters,
+	buildSummaryStats,
+	drawProgressBar,
+	drawReportHeader,
+	drawSectionHeader,
+	drawSummaryStats,
+	ensurePdfSpace,
+	getPdfTableStyles,
+	PDF_THEME,
+} from "./pdfTheme";
 import jsPDF from "jspdf";
 import { autoTable } from "jspdf-autotable";
 
@@ -55,66 +66,32 @@ export function generateBreakdownMarkdown(project: Project): string {
 export async function generateBreakdownPDF(project: Project): Promise<void> {
 	const doc = new jsPDF();
 	const modules = project.modules ?? [];
-	let yPosition = 10;
 	const pageWidth = doc.internal.pageSize.getWidth();
+	let yPosition = drawReportHeader(
+		doc,
+		project.name,
+		"Découpage fonctionnel",
+		project.start || project.end
+			? `${formatters.date(project.start)} - ${formatters.date(project.end)}`
+			: undefined,
+	);
 
-	// Helper function for progress bar
-	const drawProgressBar = (doc: jsPDF, x: number, y: number, done: number, total: number) => {
-		const barWidth = 60;
-		const barHeight = 6;
-		const percent = total > 0 ? (done / total) * 100 : 0;
-
-		// Background
-		doc.setDrawColor(220, 220, 220);
-		doc.rect(x, y - 3, barWidth, barHeight);
-
-		// Fill
-		doc.setFillColor(40, 160, 80);
-		doc.rect(x, y - 3, (barWidth * percent) / 100, barHeight, "F");
-
-		// Text
-		doc.setFontSize(8);
-		doc.setTextColor(80, 80, 80);
-		doc.text(`${percent.toFixed(0)}%`, x + barWidth + 5, y + 1);
-	};
-
-	// Header
-	doc.setFillColor(40, 160, 80);
-	doc.rect(0, 0, pageWidth, 35, "F");
-
-	doc.setFontSize(24);
-	doc.setTextColor(255, 255, 255);
-	doc.text(project.name, 15, 20);
-
-	doc.setFontSize(11);
-	doc.setTextColor(200, 255, 220);
-	doc.text("Découpage Fonctionnel", 15, 30);
-
-	yPosition = 45;
-
-	// Date info
-	if (project.start || project.end) {
-		doc.setFontSize(9);
-		doc.setTextColor(100, 100, 100);
-		doc.text(
-			`Période: ${formatters.date(project.start)} → ${formatters.date(project.end)}`,
-			15,
-			yPosition,
-		);
-		yPosition += 8;
-	}
-
-	// Summary
 	const totalFeatures = project.features.length;
 	const doneFeatures = project.features.filter((f) => f.status === "done").length;
 	const totalDays = project.features.reduce((sum, f) => sum + f.days, 0);
+	const progress = totalFeatures > 0 ? (doneFeatures / totalFeatures) * 100 : 0;
 
-	doc.setFontSize(10);
-	doc.setTextColor(50, 50, 50);
-	doc.text(`Total: ${totalFeatures} fonctionnalités | Complétées: ${doneFeatures} | Estimé: ${totalDays}j`, 15, yPosition);
-	yPosition += 8;
+	yPosition = drawSummaryStats(
+		doc,
+		yPosition,
+		buildSummaryStats([
+			{ label: "Fonctionnalités", value: String(totalFeatures) },
+			{ label: "Complétées", value: `${doneFeatures}/${totalFeatures}`, percent: progress },
+			{ label: "Charge", value: `${totalDays}j` },
+			{ label: "Modules", value: String(modules.length) },
+		]),
+	);
 
-	// Modules
 	for (const mod of modules) {
 		const features = project.features.filter((f) => f.moduleId === mod.id);
 		if (features.length === 0) continue;
@@ -122,46 +99,30 @@ export async function generateBreakdownPDF(project: Project): Promise<void> {
 		const done = features.filter((f) => f.status === "done").length;
 		const total = features.length;
 		const modDays = features.reduce((s, f) => s + (f.days || 0), 0);
+		const modProgress = total > 0 ? Math.round((done / total) * 100) : 0;
 
-		// Check if we need a new page
-		if (yPosition > 240) {
-			doc.addPage();
-			yPosition = 15;
-		}
+		yPosition = ensurePdfSpace(doc, yPosition, 40);
+		yPosition = drawSectionHeader(
+			doc,
+			yPosition,
+			mod.name,
+			`${total} fonctionnalités · ${modDays}j`,
+		);
 
-		// Module header box with color
-		const modColorRGB = mod.color ? hexToRGB(mod.color) : [40, 160, 80] as [number, number, number];
-		doc.setFillColor(modColorRGB[0], modColorRGB[1], modColorRGB[2]);
-		doc.rect(15, yPosition - 3, pageWidth - 30, 20, "F");
-
-		doc.setFontSize(12);
-		doc.setTextColor(255, 255, 255);
-		doc.text(mod.name, 18, yPosition + 5);
-
-		// Stats on the right
-		doc.setFontSize(8);
-		doc.setTextColor(255, 255, 255);
-		doc.text(`${total} fonctionnalités | ${modDays}j`, pageWidth - 70, yPosition + 5);
-
-		yPosition += 22;
-
-		// Module description
 		if (mod.description) {
 			doc.setFontSize(8);
-			doc.setTextColor(80, 80, 80);
-			const descLines = doc.splitTextToSize(mod.description, pageWidth - 30);
+			doc.setTextColor(...PDF_THEME.colors.muted);
+			const descLines = doc.splitTextToSize(mod.description, pageWidth - PDF_THEME.margin * 2);
 			doc.text(descLines, 18, yPosition);
-			yPosition += descLines.length * 3.5 + 3;
+			yPosition += descLines.length * 4 + 4;
 		}
 
-		// Progress bar
-		doc.setFontSize(8);
-		doc.setTextColor(80, 80, 80);
-		doc.text(`Progression:`, 18, yPosition + 3);
-		drawProgressBar(doc, 60, yPosition + 3, done, total);
+		doc.setFontSize(7);
+		doc.setTextColor(...PDF_THEME.colors.muted);
+		doc.text(`Progression: ${done}/${total} (${modProgress}%)`, 18, yPosition + 2);
+		drawProgressBar(doc, 68, yPosition + 2, 38, modProgress);
 		yPosition += 10;
 
-		// Features table
 		if (features.length > 0) {
 			const tableData = features.map((f) => [
 				f.name,
@@ -171,56 +132,32 @@ export async function generateBreakdownPDF(project: Project): Promise<void> {
 			]);
 
 			autoTable(doc, {
+				...getPdfTableStyles(),
 				startY: yPosition,
 				head: [["Fonctionnalité", "Statut", "Priorité", "J"]],
 				body: tableData,
-				margin: { left: 15, right: 15 },
+				margin: { left: PDF_THEME.margin, right: PDF_THEME.margin, bottom: PDF_THEME.footerHeight },
 				columnStyles: {
 					0: { cellWidth: 100 },
 					1: { cellWidth: 35, halign: "center" },
 					2: { cellWidth: 25, halign: "center" },
 					3: { cellWidth: 15, halign: "center" },
 				},
-				headStyles: {
-					fillColor: [modColorRGB[0], modColorRGB[1], modColorRGB[2]] as [number, number, number],
-					textColor: 255,
-					fontStyle: "bold",
-					fontSize: 9,
-				},
-				bodyStyles: {
-					fontSize: 8,
-				},
-				alternateRowStyles: {
-					fillColor: [245, 245, 250] as [number, number, number],
-				},
 				didDrawPage: (data) => {
-					if (data.cursor) yPosition = data.cursor.y + 5;
+					if (data.cursor) yPosition = data.cursor.y + 6;
 				},
 			});
 		}
 
-		yPosition += 5;
+		yPosition += 4;
 	}
 
-	// Orphans
 	const orphans = project.features.filter(
 		(f) => !modules.some((m) => m.id === f.moduleId),
 	);
 	if (orphans.length > 0) {
-		if (yPosition > 240) {
-			doc.addPage();
-			yPosition = 15;
-		}
-
-		// Section header
-		doc.setFillColor(180, 180, 180);
-		doc.rect(15, yPosition - 3, pageWidth - 30, 20, "F");
-
-		doc.setFontSize(12);
-		doc.setTextColor(255, 255, 255);
-		doc.text("Sans Module", 18, yPosition + 5);
-
-		yPosition += 22;
+		yPosition = ensurePdfSpace(doc, yPosition, 35);
+		yPosition = drawSectionHeader(doc, yPosition, "Sans module", `${orphans.length} fonctionnalités`);
 
 		const tableData = orphans.map((f) => [
 			f.name,
@@ -230,46 +167,26 @@ export async function generateBreakdownPDF(project: Project): Promise<void> {
 		]);
 
 		autoTable(doc, {
+			...getPdfTableStyles(),
 			startY: yPosition,
 			head: [["Fonctionnalité", "Statut", "Priorité", "J"]],
 			body: tableData,
-			margin: { left: 15, right: 15 },
+			margin: { left: PDF_THEME.margin, right: PDF_THEME.margin, bottom: PDF_THEME.footerHeight },
 			columnStyles: {
 				0: { cellWidth: 100 },
 				1: { cellWidth: 35, halign: "center" },
 				2: { cellWidth: 25, halign: "center" },
 				3: { cellWidth: 15, halign: "center" },
 			},
-			headStyles: {
-				fillColor: [180, 180, 180],
-				textColor: 255,
-				fontStyle: "bold",
-				fontSize: 9,
-			},
-			bodyStyles: {
-				fontSize: 8,
-			},
-			alternateRowStyles: {
-				fillColor: [245, 245, 250],
+			didDrawPage: (data) => {
+				if (data.cursor) yPosition = data.cursor.y + 6;
 			},
 		});
 	}
 
+	addPdfFooters(doc, "Découpage fonctionnel");
 	const filename = `${sanitizeFilename(project.name)}_breakdown_${new Date().toISOString().split("T")[0]}.pdf`;
 	doc.save(filename);
-}
-
-// Helper to convert hex color to RGB
-function hexToRGB(hex: string): [number, number, number] {
-	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-	if (result) {
-		return [
-			parseInt(result[1], 16),
-			parseInt(result[2], 16),
-			parseInt(result[3], 16),
-		];
-	}
-	return [40, 160, 80];
 }
 
 export function exportBreakdown(project: Project, format: "md" | "pdf"): void {

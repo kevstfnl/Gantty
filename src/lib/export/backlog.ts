@@ -5,6 +5,17 @@ import {
 	downloadCSV,
 	downloadMarkdown,
 } from "./common";
+import {
+	addPdfFooters,
+	buildSummaryStats,
+	drawProgressBar,
+	drawReportHeader,
+	drawSectionHeader,
+	drawSummaryStats,
+	ensurePdfSpace,
+	getPdfTableStyles,
+	PDF_THEME,
+} from "./pdfTheme";
 import jsPDF from "jspdf";
 import { autoTable } from "jspdf-autotable";
 
@@ -108,54 +119,24 @@ export function generateBacklogMarkdown(project: Project): string {
 export async function generateBacklogPDF(project: Project): Promise<void> {
 	const doc = new jsPDF();
 	const sprints = project.sprints ?? [];
-	let yPosition = 10;
-	const pageWidth = doc.internal.pageSize.getWidth();
+	let yPosition = drawReportHeader(doc, project.name, "Backlog fonctionnel");
 
-	// Helper function for progress bar
-	const drawProgressBar = (doc: jsPDF, x: number, y: number, done: number, total: number) => {
-		const barWidth = 60;
-		const barHeight = 6;
-		const percent = total > 0 ? (done / total) * 100 : 0;
-
-		// Background
-		doc.setDrawColor(220, 220, 220);
-		doc.rect(x, y - 3, barWidth, barHeight);
-
-		// Fill
-		doc.setFillColor(0, 82, 195);
-		doc.rect(x, y - 3, (barWidth * percent) / 100, barHeight, "F");
-
-		// Text
-		doc.setFontSize(8);
-		doc.setTextColor(80, 80, 80);
-		doc.text(`${percent.toFixed(0)}%`, x + barWidth + 5, y + 1);
-	};
-
-	// Header
-	doc.setFillColor(0, 82, 195);
-	doc.rect(0, 0, pageWidth, 35, "F");
-
-	doc.setFontSize(24);
-	doc.setTextColor(255, 255, 255);
-	doc.text(project.name, 15, 20);
-
-	doc.setFontSize(11);
-	doc.setTextColor(200, 220, 255);
-	doc.text("Backlog", 15, 30);
-
-	yPosition = 45;
-
-	// Summary stats
 	const totalFeatures = project.features.length;
 	const doneFeatures = project.features.filter((f) => f.status === "done").length;
 	const totalDays = project.features.reduce((sum, f) => sum + f.days, 0);
+	const progress = totalFeatures > 0 ? (doneFeatures / totalFeatures) * 100 : 0;
 
-	doc.setFontSize(10);
-	doc.setTextColor(50, 50, 50);
-	doc.text(`Total: ${totalFeatures} tâches | Complétées: ${doneFeatures} | Jours estimés: ${totalDays}j`, 15, yPosition);
-	yPosition += 8;
+	yPosition = drawSummaryStats(
+		doc,
+		yPosition,
+		buildSummaryStats([
+			{ label: "Tâches", value: String(totalFeatures) },
+			{ label: "Complétées", value: `${doneFeatures}/${totalFeatures}`, percent: progress },
+			{ label: "Charge", value: `${totalDays}j` },
+			{ label: "Sprints", value: String(sprints.length) },
+		]),
+	);
 
-	// Sprints
 	for (const sprint of sprints) {
 		const sprintFeatures = project.features.filter(
 			(f) => f.sprintId === sprint.id || sprint.taskIds.includes(f.id),
@@ -163,52 +144,35 @@ export async function generateBacklogPDF(project: Project): Promise<void> {
 		const done = sprintFeatures.filter((f) => f.status === "done").length;
 		const total = sprintFeatures.length;
 		const sprintDays = sprintFeatures.reduce((sum, f) => sum + f.days, 0);
+		const sprintProgress = total > 0 ? Math.round((done / total) * 100) : 0;
 
 		if (total === 0) continue;
 
-		// Check if we need a new page
-		if (yPosition > 240) {
-			doc.addPage();
-			yPosition = 15;
-		}
-
-		// Sprint header box
-		doc.setFillColor(240, 240, 245);
-		doc.rect(15, yPosition - 3, pageWidth - 30, 20, "F");
-		doc.setDrawColor(0, 82, 195);
-		doc.setLineWidth(1);
-		doc.rect(15, yPosition - 3, pageWidth - 30, 20);
-
-		doc.setFontSize(12);
-		doc.setTextColor(0, 82, 195);
-		doc.text(sprint.name, 18, yPosition + 5);
-
-		// Sprint stats
-		doc.setFontSize(8);
-		doc.setTextColor(100, 100, 100);
 		const sprintInfo = sprint.start
-			? `${formatters.date(sprint.start)} → ${formatters.date(sprint.end)}`
+			? `${formatters.date(sprint.start)} - ${formatters.date(sprint.end)}`
 			: "";
-		doc.text(sprintInfo, pageWidth - 100, yPosition + 5);
+		yPosition = ensurePdfSpace(doc, yPosition, 40);
+		yPosition = drawSectionHeader(
+			doc,
+			yPosition,
+			sprint.name,
+			[sprintInfo, `${total} tâches`, `${sprintDays}j`].filter(Boolean).join(" · "),
+		);
 
-		yPosition += 22;
-
-		// Sprint info line
 		if (sprint.goal) {
 			doc.setFontSize(9);
-			doc.setTextColor(80, 80, 80);
-			doc.text(`Objectif: ${sprint.goal}`, 18, yPosition);
-			yPosition += 6;
+			doc.setTextColor(...PDF_THEME.colors.muted);
+			const goalLines = doc.splitTextToSize(`Objectif : ${sprint.goal}`, 175);
+			doc.text(goalLines, 18, yPosition);
+			yPosition += goalLines.length * 4 + 3;
 		}
 
-		// Progress bar
-		doc.setFontSize(8);
-		doc.setTextColor(80, 80, 80);
-		doc.text(`Progression:`, 18, yPosition + 3);
-		drawProgressBar(doc, 60, yPosition + 3, done, total);
+		doc.setFontSize(7);
+		doc.setTextColor(...PDF_THEME.colors.muted);
+		doc.text(`Progression: ${done}/${total} (${sprintProgress}%)`, 18, yPosition + 2);
+		drawProgressBar(doc, 68, yPosition + 2, 38, sprintProgress);
 		yPosition += 10;
 
-		// Tasks table
 		if (sprintFeatures.length > 0) {
 			const tableData = sprintFeatures.map((f) => [
 				f.name,
@@ -218,59 +182,32 @@ export async function generateBacklogPDF(project: Project): Promise<void> {
 			]);
 
 			autoTable(doc, {
+				...getPdfTableStyles(),
 				startY: yPosition,
 				head: [["Tâche", "Statut", "Priorité", "J"]],
 				body: tableData,
-				margin: { left: 15, right: 15 },
+				margin: { left: PDF_THEME.margin, right: PDF_THEME.margin, bottom: PDF_THEME.footerHeight },
 				columnStyles: {
 					0: { cellWidth: 100 },
 					1: { cellWidth: 35, halign: "center" },
 					2: { cellWidth: 25, halign: "center" },
 					3: { cellWidth: 15, halign: "center" },
 				},
-				headStyles: {
-					fillColor: [0, 82, 195],
-					textColor: 255,
-					fontStyle: "bold",
-					fontSize: 9,
-				},
-				bodyStyles: {
-					fontSize: 8,
-				},
-				alternateRowStyles: {
-					fillColor: [245, 245, 250],
-				},
 				didDrawPage: (data) => {
-					if (data.cursor) yPosition = data.cursor.y + 5;
+					if (data.cursor) yPosition = data.cursor.y + 6;
 				},
 			});
 		}
 
-		yPosition += 5;
+		yPosition += 4;
 	}
 
-	// Orphans section
 	const orphans = project.features.filter(
 		(f) => !f.sprintId && !sprints.some((s) => s.taskIds.includes(f.id)),
 	);
 	if (orphans.length > 0) {
-		if (yPosition > 240) {
-			doc.addPage();
-			yPosition = 15;
-		}
-
-		// Section header
-		doc.setFillColor(240, 240, 245);
-		doc.rect(15, yPosition - 3, pageWidth - 30, 20, "F");
-		doc.setDrawColor(255, 100, 0);
-		doc.setLineWidth(1);
-		doc.rect(15, yPosition - 3, pageWidth - 30, 20);
-
-		doc.setFontSize(12);
-		doc.setTextColor(255, 100, 0);
-		doc.text("Non Assigné", 18, yPosition + 5);
-
-		yPosition += 22;
+		yPosition = ensurePdfSpace(doc, yPosition, 35);
+		yPosition = drawSectionHeader(doc, yPosition, "Non assigné", `${orphans.length} tâches`);
 
 		const tableData = orphans.map((f) => [
 			f.name,
@@ -280,31 +217,24 @@ export async function generateBacklogPDF(project: Project): Promise<void> {
 		]);
 
 		autoTable(doc, {
+			...getPdfTableStyles(),
 			startY: yPosition,
 			head: [["Tâche", "Statut", "Priorité", "J"]],
 			body: tableData,
-			margin: { left: 15, right: 15 },
+			margin: { left: PDF_THEME.margin, right: PDF_THEME.margin, bottom: PDF_THEME.footerHeight },
 			columnStyles: {
 				0: { cellWidth: 100 },
 				1: { cellWidth: 35, halign: "center" },
 				2: { cellWidth: 25, halign: "center" },
 				3: { cellWidth: 15, halign: "center" },
 			},
-			headStyles: {
-				fillColor: [255, 100, 0],
-				textColor: 255,
-				fontStyle: "bold",
-				fontSize: 9,
-			},
-			bodyStyles: {
-				fontSize: 8,
-			},
-			alternateRowStyles: {
-				fillColor: [245, 245, 250],
+			didDrawPage: (data) => {
+				if (data.cursor) yPosition = data.cursor.y + 6;
 			},
 		});
 	}
 
+	addPdfFooters(doc, "Backlog fonctionnel");
 	const filename = `${sanitizeFilename(project.name)}_backlog_${new Date().toISOString().split("T")[0]}.pdf`;
 	doc.save(filename);
 }
