@@ -1,14 +1,15 @@
 "use client";
-import { Minus, Plus, ZoomIn, ZoomOut } from "lucide-react";
+import { Download, Minus, Plus, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { DepDragLine } from "@/components/gantt/DepDragLine";
 import { GanttChart } from "@/components/gantt/GanttChart";
 import { HEAD_H } from "@/components/gantt/GanttHeader";
 import { GanttLabels } from "@/components/gantt/GanttLabels";
 import { GanttLegend } from "@/components/gantt/GanttLegend";
-import { Btn, IconBtn, PageHeader } from "@/components/ui";
+import { Btn, IconBtn, PageHeader, ExportModal } from "@/components/ui";
 import { useStore } from "@/lib/store";
 import { dayOffset, daysBetween } from "@/lib/utils";
+import { exportGanttAsJSON, exportGanttAsSVG, exportGantt } from "@/lib/export/gantt";
 
 const DEFAULT_DAY_W = 36;
 const DEFAULT_ROW_H = 52;
@@ -21,6 +22,7 @@ export default function Gantt() {
 	const [rowH, setRowH] = useState(DEFAULT_ROW_H);
 	const [sprintFilter, setSprintFilter] = useState("all");
 	const [moduleFilter, setModuleFilter] = useState("all");
+	const [exportModal, setExportModal] = useState(false);
 
 	// Dep drag state
 	const [draggingDepFrom, setDraggingDepFrom] = useState<string | null>(null);
@@ -165,6 +167,14 @@ export default function Gantt() {
 								<ZoomIn size={15} />
 							</IconBtn>
 						</div>
+						{/* Export button */}
+						<Btn
+							variant="secondary"
+							icon={<Download size={15} />}
+							onClick={() => setExportModal(true)}
+						>
+							Exporter
+						</Btn>
 					</div>
 				}
 			/>
@@ -254,6 +264,32 @@ export default function Gantt() {
 				startX={depDragOrigin.x}
 				startY={depDragOrigin.y}
 				active={!!draggingDepFrom}
+			/>
+
+			{/* Export modal */}
+			<ExportModal
+				open={exportModal}
+				onClose={() => setExportModal(false)}
+				title="Exporter le Gantt"
+				options={[
+					{
+						value: "svg",
+						label: "SVG (Image vectorielle)",
+						description: "Diagramme Gantt vectoriel de haute qualité",
+					},
+					{
+						value: "json",
+						label: "JSON",
+						description: "Données structurées (sprints, features, modules, dépendances)",
+					},
+				]}
+				onExport={(format) => {
+					if (format === "svg") {
+						exportGanttAsSVG(project);
+					} else if (format === "json") {
+						exportGantt(project, "json");
+					}
+				}}
 			/>
 		</div>
 	);

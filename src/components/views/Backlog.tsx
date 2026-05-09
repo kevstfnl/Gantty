@@ -9,15 +9,17 @@ import {
 	useSensor,
 	useSensors,
 } from "@dnd-kit/core";
-import { Kanban, LayoutList, Plus } from "lucide-react";
+import { Download, Kanban, LayoutList, Plus } from "lucide-react";
 import { useState } from "react";
 import { AddTaskModal } from "@/components/backlog/AddTaskModal";
 import { SprintGroup } from "@/components/backlog/SprintGroup";
 import { SprintModal } from "@/components/backlog/SprintModal";
 import { SprintTableRow } from "@/components/backlog/SprintTableRow";
 import { TaskCard } from "@/components/backlog/TaskCard";
-import { Btn, IconBtn, PageHeader } from "@/components/ui";
+import { Btn, IconBtn, PageHeader, ExportModal } from "@/components/ui";
 import { type Feature, type Sprint, type Status, useStore } from "@/lib/store";
+import { exportBacklog } from "@/lib/export/backlog";
+import { exportSpecs } from "@/lib/export/specs";
 
 type ViewMode = "kanban" | "table";
 
@@ -96,6 +98,7 @@ export default function Backlog() {
 	const [sprintModal, setSprintModal] = useState(false);
 	const [editSprint, setEditSprint] = useState<Sprint | undefined>();
 	const [mode, setMode] = useState<ViewMode>("kanban");
+	const [exportModal, setExportModal] = useState<"backlog" | "specs" | null>(null);
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
 	);
@@ -169,6 +172,22 @@ export default function Backlog() {
 						>
 							Tâche
 						</Btn>
+						<div className="flex gap-2">
+							<Btn
+								variant="secondary"
+								icon={<Download size={15} />}
+								onClick={() => setExportModal("backlog")}
+							>
+								Backlog
+							</Btn>
+							<Btn
+								variant="secondary"
+								icon={<Download size={15} />}
+								onClick={() => setExportModal("specs")}
+							>
+								Specs
+							</Btn>
+						</div>
 					</div>
 				}
 			/>
@@ -225,6 +244,54 @@ export default function Backlog() {
 				sprint={editSprint}
 				open={sprintModal}
 				onClose={() => setSprintModal(false)}
+			/>
+
+			{/* Export modals */}
+			<ExportModal
+				open={exportModal === "backlog"}
+				onClose={() => setExportModal(null)}
+				title="Exporter le Backlog"
+				options={[
+					{
+						value: "csv",
+						label: "CSV",
+						description: "Fichier tableur avec tâches et sprints",
+					},
+					{
+						value: "md",
+						label: "Markdown",
+						description: "Document formaté lisible",
+					},
+					{
+						value: "pdf",
+						label: "PDF",
+						description: "Document imprimable par sprint",
+					},
+				]}
+				onExport={(format) => exportBacklog(project, format as "csv" | "md" | "pdf")}
+			/>
+			<ExportModal
+				open={exportModal === "specs"}
+				onClose={() => setExportModal(null)}
+				title="Exporter les Spécifications"
+				options={[
+					{
+						value: "md",
+						label: "Markdown",
+						description: "Document formaté lisible",
+					},
+					{
+						value: "pdf",
+						label: "PDF",
+						description: "Document imprimable détaillé",
+					},
+					{
+						value: "json",
+						label: "JSON",
+						description: "Format de données pour intégration",
+					},
+				]}
+				onExport={(format) => exportSpecs(project, format as "md" | "pdf" | "json")}
 			/>
 		</div>
 	);

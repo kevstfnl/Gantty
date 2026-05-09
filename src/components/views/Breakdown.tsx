@@ -8,7 +8,7 @@ import {
 	useSensor,
 	useSensors,
 } from "@dnd-kit/core";
-import { ArrowRight, Layers, Plus } from "lucide-react";
+import { ArrowRight, Download, Layers, Plus } from "lucide-react";
 import { useState } from "react";
 import { AddFeatureModal } from "@/components/breakdown/AddFeatureModal";
 import { DraggableFeatureRow } from "@/components/breakdown/DraggableFeatureRow";
@@ -17,8 +17,10 @@ import { ModuleGroup } from "@/components/breakdown/ModuleGroup";
 import { ModuleModal } from "@/components/breakdown/ModuleModal";
 import { ProjectDatesBar } from "@/components/breakdown/ProjectDatesBar";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { Btn, PageHeader } from "@/components/ui";
+import { Btn, PageHeader, ExportModal } from "@/components/ui";
 import { type Feature, type Module, useStore } from "@/lib/store";
+import { exportBreakdown } from "@/lib/export/breakdown";
+import { exportSpecs } from "@/lib/export/specs";
 
 const COL_HEAD =
 	"grid grid-cols-[40px_1fr_130px_100px_72px_44px] px-5 py-3 text-[10px] font-black tracking-widest uppercase text-[var(--dim)] border-b border-[rgba(71,71,71,0.15)]";
@@ -77,6 +79,7 @@ export default function Breakdown() {
 	const [editModule, setEditModule] = useState<Module | undefined>();
 	const [defModuleId, setDefModuleId] = useState("");
 	const [dragging, setDragging] = useState<Feature | null>(null);
+	const [exportModal, setExportModal] = useState<"breakdown" | "specs" | null>(null);
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -149,6 +152,22 @@ export default function Breakdown() {
 						>
 							Fonctionnalité
 						</Btn>
+						<div className="flex gap-2">
+							<Btn
+								variant="secondary"
+								icon={<Download size={15} />}
+								onClick={() => setExportModal("breakdown")}
+							>
+								Découpage
+							</Btn>
+							<Btn
+								variant="secondary"
+								icon={<Download size={15} />}
+								onClick={() => setExportModal("specs")}
+							>
+								Specs
+							</Btn>
+						</div>
 					</>
 				}
 			/>
@@ -226,6 +245,49 @@ export default function Breakdown() {
 				module={editModule}
 				open={moduleModal}
 				onClose={() => setModuleModal(false)}
+			/>
+
+			{/* Export modals */}
+			<ExportModal
+				open={exportModal === "breakdown"}
+				onClose={() => setExportModal(null)}
+				title="Exporter le Découpage Fonctionnel"
+				options={[
+					{
+						value: "md",
+						label: "Markdown",
+						description: "Document formaté lisible",
+					},
+					{
+						value: "pdf",
+						label: "PDF",
+						description: "Document imprimable avec spécifications",
+					},
+				]}
+				onExport={(format) => exportBreakdown(project, format as "md" | "pdf")}
+			/>
+			<ExportModal
+				open={exportModal === "specs"}
+				onClose={() => setExportModal(null)}
+				title="Exporter les Spécifications"
+				options={[
+					{
+						value: "md",
+						label: "Markdown",
+						description: "Document formaté lisible",
+					},
+					{
+						value: "pdf",
+						label: "PDF",
+						description: "Document imprimable détaillé",
+					},
+					{
+						value: "json",
+						label: "JSON",
+						description: "Format de données pour intégration",
+					},
+				]}
+				onExport={(format) => exportSpecs(project, format as "md" | "pdf" | "json")}
 			/>
 		</div>
 	);

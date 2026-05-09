@@ -1,5 +1,5 @@
 "use client";
-import { X } from "lucide-react";
+import { X, Download } from "lucide-react";
 import type React from "react";
 import type { Priority, Status } from "@/lib/store";
 import {
@@ -213,5 +213,57 @@ export function ProgressBar({ value }: { value: number }) {
 				{value}%
 			</span>
 		</div>
+	);
+}
+
+interface ExportOption {
+	value: string;
+	label: string;
+	description: string;
+}
+
+interface ExportModalProps {
+	open: boolean;
+	onClose: () => void;
+	title: string;
+	options: ExportOption[];
+	onExport: (format: string) => void;
+	isLoading?: boolean;
+}
+
+export function ExportModal({
+	open,
+	onClose,
+	title,
+	options,
+	onExport,
+	isLoading = false,
+}: ExportModalProps) {
+	return (
+		<Modal open={open} onClose={onClose} title={title}>
+			<div className="space-y-3">
+				{options.map((opt) => (
+					<button
+						key={opt.value}
+						onClick={() => {
+							onExport(opt.value);
+							onClose();
+						}}
+						disabled={isLoading}
+						className="w-full flex items-start gap-3 p-3 rounded border border-[rgba(71,71,71,0.3)] hover:bg-[var(--s2)] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						<Download size={18} className="text-[var(--blue)] flex-shrink-0 mt-0.5" />
+						<div>
+							<div className="text-[13px] font-medium text-[var(--txt)]">
+								{opt.label}
+							</div>
+							<div className="text-[11px] text-[var(--dim)] mt-1">
+								{opt.description}
+							</div>
+						</div>
+					</button>
+				))}
+			</div>
+		</Modal>
 	);
 }

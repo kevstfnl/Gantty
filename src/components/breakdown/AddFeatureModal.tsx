@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Btn, Field, Input, Modal, Select } from "@/components/ui";
 import { type Feature, useStore } from "@/lib/store";
 
@@ -29,6 +29,10 @@ export function AddFeatureModal({
 	const project = currentProject();
 	const [form, setForm] = useState({ ...EMPTY, moduleId: defaultModuleId });
 	const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+	useEffect(() => {
+		setForm({ ...EMPTY, moduleId: defaultModuleId });
+	}, [defaultModuleId, open]);
 
 	function handleSave() {
 		if (!form.name.trim()) return;

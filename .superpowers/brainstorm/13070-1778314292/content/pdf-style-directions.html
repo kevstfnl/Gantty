@@ -1,0 +1,77 @@
+<h2>Direction visuelle des exports PDF</h2>
+<p class="subtitle">Choisis le style qui te semble le plus adapté à une présentation client. Les exemples reprennent les contenus actuels : synthèse projet, modules, backlog et spécifications.</p>
+
+<div class="cards">
+  <div class="card" data-choice="executive" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:linear-gradient(135deg,#0f172a,#004ced);color:white;padding:18px;border-radius:10px 10px 0 0;">
+        <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;opacity:.72;">Dossier client</div>
+        <div style="font-size:22px;font-weight:800;margin-top:8px;">Projet Atlas</div>
+        <div style="font-size:11px;opacity:.8;margin-top:4px;">Roadmap, backlog et spécifications</div>
+      </div>
+      <div style="padding:14px;background:#fff;border:1px solid #e5e7eb;border-top:0;border-radius:0 0 10px 10px;">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+          <div style="background:#f8fafc;border-radius:8px;padding:8px;"><b>24</b><br><span style="font-size:10px;color:#64748b;">features</span></div>
+          <div style="background:#f8fafc;border-radius:8px;padding:8px;"><b>68j</b><br><span style="font-size:10px;color:#64748b;">estimés</span></div>
+          <div style="background:#f8fafc;border-radius:8px;padding:8px;"><b>42%</b><br><span style="font-size:10px;color:#64748b;">avancement</span></div>
+        </div>
+        <div style="height:9px;background:#e2e8f0;border-radius:999px;overflow:hidden;"><div style="height:100%;width:42%;background:#004ced;"></div></div>
+        <div style="margin-top:14px;border-left:4px solid #004ced;padding-left:10px;font-weight:700;">Module Facturation</div>
+        <div style="margin-top:8px;height:8px;background:#eef2ff;border-radius:4px;width:92%;"></div>
+        <div style="margin-top:6px;height:8px;background:#eef2ff;border-radius:4px;width:72%;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Executive premium</h3>
+      <p>Très orienté client : couverture forte, résumé lisible, sections aérées, couleurs sobres et hiérarchie nette.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="structured" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#ffffff;border:1px solid #dbe3ef;border-radius:10px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #004ced;padding-bottom:10px;">
+          <div><div style="font-size:18px;font-weight:800;color:#0f172a;">Projet Atlas</div><div style="font-size:10px;color:#64748b;">Backlog fonctionnel</div></div>
+          <div style="background:#eff6ff;color:#004ced;padding:6px 8px;border-radius:999px;font-size:10px;font-weight:700;">Client</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
+          <div style="border:1px solid #e5e7eb;border-radius:8px;padding:9px;"><b>Sprint 1</b><div style="margin-top:8px;height:6px;background:#004ced;border-radius:5px;width:70%;"></div></div>
+          <div style="border:1px solid #e5e7eb;border-radius:8px;padding:9px;"><b>Sprint 2</b><div style="margin-top:8px;height:6px;background:#94a3b8;border-radius:5px;width:45%;"></div></div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:10px;">
+          <tr style="background:#0f172a;color:white;"><th style="padding:6px;text-align:left;">Item</th><th>Statut</th><th>J</th></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e5e7eb;">Tunnel devis</td><td>En cours</td><td>5</td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e5e7eb;">Export PDF</td><td>Todo</td><td>2</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Structuré harmonisé</h3>
+      <p>Évolution directe des PDFs actuels : même contenu, meilleure grille, composants réutilisables, rendu propre sans refonte lourde.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="technical" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:14px;font-family:monospace;">
+        <div style="display:flex;gap:8px;align-items:center;color:#334155;"><span style="width:10px;height:10px;border-radius:999px;background:#22c55e;display:inline-block;"></span><b>Projet Atlas / Spécifications</b></div>
+        <div style="margin-top:12px;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;">
+          <div style="font-size:10px;color:#64748b;text-transform:uppercase;">Module Auth</div>
+          <div style="margin-top:8px;font-weight:700;">Connexion utilisateur</div>
+          <div style="margin-top:6px;color:#475569;font-size:10px;line-height:1.45;">En tant que client, je peux me connecter pour accéder au tableau de bord.</div>
+        </div>
+        <div style="margin-top:10px;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:10px;">
+          <div style="font-size:10px;color:#64748b;text-transform:uppercase;">Critères</div>
+          <div style="margin-top:8px;height:7px;background:#cbd5e1;border-radius:4px;width:90%;"></div>
+          <div style="margin-top:6px;height:7px;background:#cbd5e1;border-radius:4px;width:76%;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Technique détaillé</h3>
+      <p>Plus proche d’un dossier projet interne : dense, précis, pratique pour validation technique, moins commercial.</p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle">Clique une option dans la maquette si tu veux, puis réponds dans le terminal avec ce que tu préfères ou ce que tu veux mélanger.</p>
