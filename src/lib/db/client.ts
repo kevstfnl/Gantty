@@ -66,7 +66,26 @@ export async function initDb() {
       end_date TEXT DEFAULT '',
       goal TEXT DEFAULT '',
       task_ids TEXT DEFAULT '[]',
+      sort_order INTEGER DEFAULT 0,
       FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
     )`,
 	]);
+
+	await ensureColumn("modules", "sort_order", "INTEGER DEFAULT 0");
+	await ensureColumn("features", "sort_order", "INTEGER DEFAULT 0");
+	await ensureColumn("tasks", "sort_order", "INTEGER DEFAULT 0");
+	await ensureColumn("sprints", "sort_order", "INTEGER DEFAULT 0");
+}
+
+async function ensureColumn(
+	table: string,
+	column: string,
+	definition: string,
+) {
+	const columns = await db.execute(`PRAGMA table_info(${table})`);
+	const hasColumn = columns.rows.some((row) => row.name === column);
+
+	if (!hasColumn) {
+		await db.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+	}
 }
